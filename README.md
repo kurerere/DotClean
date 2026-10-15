@@ -78,7 +78,11 @@ Download from the [Releases](https://github.com/kurerere/DotClean/releases/lates
 
 The builds are not code-signed yet:
 
-- On macOS, the first launch says the developer cannot be verified. Open **System Settings → Privacy & Security** and click **Open Anyway**.
+- On macOS, the first launch says the developer cannot be verified. Open **System Settings → Privacy & Security** and click **Open Anyway**. If macOS instead says the app "is damaged and can't be opened", remove the download quarantine flag and open it again:
+
+  ```sh
+  xattr -cr /Applications/DotClean.app
+  ```
 - On Windows, if SmartScreen appears, click **More info → Run anyway**.
 
 > DotClean is designed for macOS and most rules target the macOS folder layout. The Windows build runs, but few rules will match.
