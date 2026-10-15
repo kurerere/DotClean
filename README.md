@@ -4,86 +4,100 @@
 
 <h1 align="center">DotClean</h1>
 
-<p align="center">找出开发环境里悄悄吃掉磁盘的缓存、构建产物和模型文件，看清楚再清理。</p>
+<p align="center">Find the caches, build output and model files quietly eating your disk, and clean them up knowing exactly what goes.</p>
 
 <p align="center">
-  <a href="https://github.com/kurerere/DotClean/releases/latest">下载</a> ·
-  <a href="#清理规则">清理规则</a> ·
-  <a href="#从源码构建">从源码构建</a>
+  <a href="https://github.com/kurerere/DotClean/releases/latest">Download</a> ·
+  <a href="#cleanup-rules">Cleanup rules</a> ·
+  <a href="#build-from-source">Build from source</a>
+</p>
+
+<p align="center">English · <a href="README.zh-CN.md">简体中文</a></p>
+
+<p align="center">
+  <img src="assets/screenshots/overview.png" alt="DotClean main window: a treemap of the home folder colored by category, next to cleanup recommendations">
 </p>
 
 ---
 
-写代码久了，`~/.npm`、`~/Library/Developer/Xcode/DerivedData`、闲置项目里的 `node_modules`、Rust 的 `target`、本地大模型……这些东西加起来常常有几十上百 GB。DotClean 会扫描你的主目录，把它们按“可以放心删”和“删之前先看看”分开列出来，并显示各自占了多少空间。
+After a while as a developer, `~/.npm`, `~/Library/Developer/Xcode/DerivedData`, `node_modules` in projects you stopped touching, Rust `target` folders and local LLMs easily add up to tens or hundreds of gigabytes. DotClean scans your home folder, splits what it finds into "safe to remove" and "review first", and shows how much space each one takes.
 
-## 功能
+## Features
 
-- **快速扫描主目录**：多线程遍历，按实际占用的磁盘块计算大小，所以 `Docker.raw` 这类稀疏文件显示的是真实占用；不跟随符号链接，也不跨卷扫描
-- **矩形树图浏览**：逐层查看哪个文件夹最大，命中清理规则的部分会高亮标出
-- **分级清理建议**：“可放心删除”的通常是能自动重建的缓存；“需要确认”的是删了要重新下载或重新构建的内容，比如模型和 SDK
-- **移到废纸篓，不直接删除**：误删可以从废纸篓找回，清空废纸篓后才真正释放空间
-- **生成清理脚本**：不想让应用动手的话，可以复制一份 `rm -rf` 脚本，自己检查后再执行
-- 只接受扫描结果里规则匹配到的路径，前端无法让它删除任意位置
+- **Fast home folder scan**: walks the tree in parallel and measures allocated disk blocks, so sparse files like `Docker.raw` report their real footprint. Symlinks are never followed and other volumes are skipped.
+- **Treemap explorer**: drill into whichever folder is biggest; anything matched by a cleanup rule is highlighted.
+- **Tiered recommendations**: "Safe to remove" is mostly caches that rebuild themselves; "Review first" is content you would have to download or rebuild again, such as models and SDKs.
+- **Moves to the Trash, never deletes**: anything removed by mistake can be restored, and the space is reclaimed once you empty the Trash.
+- **Cleanup script**: prefer to do it yourself? Copy an `rm -rf` script, read it, then run it.
+- Only paths matched by the rules in the latest scan are accepted, so the UI cannot ask it to delete arbitrary locations.
 
-## 清理规则
+Switch the explorer to the Cleanup view to see at a glance what can go (green) and what needs a look first (orange). The app follows the system dark mode:
 
-**可放心删除**
+<p align="center">
+  <img src="assets/screenshots/cleanup-dark.png" alt="DotClean Cleanup view in dark mode">
+</p>
 
-| 项目 | 位置 |
+> Screenshots use demo data.
+
+## Cleanup rules
+
+**Safe to remove**
+
+| Item | Location |
 | --- | --- |
-| npm 缓存 | `~/.npm/_cacache`、`_npx`、`_logs` |
-| pnpm、Yarn、Bun 缓存 | `~/Library/pnpm/store`、`~/Library/Caches/Yarn`、`~/.bun/install/cache` 等 |
-| Next.js 与 Turbo 构建产物 | 项目中的 `.next`、`.turbo` |
-| Gradle 缓存 | `~/.gradle/caches`、`wrapper/dists`、`daemon` |
+| npm cache | `~/.npm/_cacache`, `_npx`, `_logs` |
+| pnpm, Yarn & Bun caches | `~/Library/pnpm/store`, `~/Library/Caches/Yarn`, `~/.bun/install/cache`, … |
+| Next.js & Turbo build output | `.next`, `.turbo` in your projects |
+| Gradle caches | `~/.gradle/caches`, `wrapper/dists`, `daemon` |
 | Xcode DerivedData | `~/Library/Developer/Xcode/DerivedData` |
-| uv、pip、Puppeteer、Playwright 缓存 | `~/.cache/uv`、`~/.cache/pip`、`~/.cache/puppeteer` 等 |
-| Homebrew 下载缓存 | `~/Library/Caches/Homebrew` |
-| Go 与 Cargo 缓存 | `~/Library/Caches/go-build`、`~/.cargo/registry` |
-| CocoaPods 缓存 | `~/Library/Caches/CocoaPods` |
+| uv, pip, Puppeteer & Playwright caches | `~/.cache/uv`, `~/.cache/pip`, `~/.cache/puppeteer`, … |
+| Homebrew downloads | `~/Library/Caches/Homebrew` |
+| Go & Cargo caches | `~/Library/Caches/go-build`, `~/.cargo/registry` |
+| CocoaPods cache | `~/Library/Caches/CocoaPods` |
 
-**需要确认**
+**Review first**
 
-| 项目 | 位置 |
+| Item | Location |
 | --- | --- |
-| Claude Code worktrees | 项目中的 `.claude/worktrees` |
-| Android SDK 与模拟器 | `~/Library/Android/sdk`、`~/.android/avd` |
-| Ollama 模型 | `~/.ollama/models` |
-| Hugging Face 与 LM Studio 模型 | `~/.cache/huggingface`、`~/.lmstudio/models` |
-| Xcode 设备支持文件与归档 | `~/Library/Developer/Xcode/iOS DeviceSupport`、`Archives` 等 |
-| Rust 构建产物 | 项目中带 `CACHEDIR.TAG` 的 `target` |
-| 闲置项目的 `node_modules` | 30 天以上没有改动的项目 |
+| Claude Code worktrees | `.claude/worktrees` in your projects |
+| Android SDK & emulators | `~/Library/Android/sdk`, `~/.android/avd` |
+| Ollama models | `~/.ollama/models` |
+| Hugging Face & LM Studio models | `~/.cache/huggingface`, `~/.lmstudio/models` |
+| Xcode device support & archives | `~/Library/Developer/Xcode/iOS DeviceSupport`, `Archives`, … |
+| Rust build output | `target` folders containing `CACHEDIR.TAG` |
+| `node_modules` in idle projects | projects untouched for 30+ days |
 
-小于 1 MB 的项目不会列出。
+Items smaller than 1 MB are not listed.
 
-## 安装
+## Install
 
-在 [Releases](https://github.com/kurerere/DotClean/releases/latest) 页面下载：
+Download from the [Releases](https://github.com/kurerere/DotClean/releases/latest) page:
 
-- **macOS（Apple Silicon）**：`.dmg`
-- **Windows（x64）**：`.msi` 或 `-setup.exe`
+- **macOS (Apple Silicon)**: `.dmg`
+- **Windows (x64)**: `.msi` or `-setup.exe`
 
-安装包目前没有签名：
+The builds are not code-signed yet:
 
-- macOS 首次打开会提示无法验证开发者，到「系统设置 → 隐私与安全性」里点“仍要打开”
-- Windows 弹出 SmartScreen 时，点“更多信息 → 仍要运行”
+- On macOS, the first launch says the developer cannot be verified. Open **System Settings → Privacy & Security** and click **Open Anyway**.
+- On Windows, if SmartScreen appears, click **More info → Run anyway**.
 
-> DotClean 主要为 macOS 设计，大部分规则针对 macOS 的目录结构。Windows 版可以运行，但能匹配到的规则很少。
+> DotClean is designed for macOS and most rules target the macOS folder layout. The Windows build runs, but few rules will match.
 
-## 从源码构建
+## Build from source
 
-需要 [Node.js](https://nodejs.org/)、[pnpm](https://pnpm.io/) 和 [Rust](https://rustup.rs/)，另外按 [Tauri 的说明](https://v2.tauri.app/start/prerequisites/)安装各平台依赖。
+You need [Node.js](https://nodejs.org/), [pnpm](https://pnpm.io/) and [Rust](https://rustup.rs/), plus the platform dependencies listed in the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
 
 ```sh
 pnpm install
-pnpm tauri dev     # 开发模式
-pnpm tauri build   # 打包安装包
+pnpm tauri dev     # run in development mode
+pnpm tauri build   # build installers
 ```
 
-技术栈：Tauri 2 + Rust 负责扫描和规则匹配，React + Vite + Tailwind CSS + shadcn/ui 负责界面。
+Stack: Tauri 2 and Rust for scanning and rule matching; React, Vite, Tailwind CSS and shadcn/ui for the interface.
 
-## 发布新版本
+## Releasing
 
-推送 tag 就会触发 GitHub Actions，自动构建 macOS arm64 和 Windows x64 安装包并发布到 Releases。tag 形如 `v1.2.3` 时，安装包版本号会自动设为 `1.2.3`。
+Pushing a tag triggers GitHub Actions, which builds the macOS arm64 and Windows x64 installers and publishes them to Releases. For tags like `v1.2.3`, the app version is set to `1.2.3` automatically.
 
 ```sh
 git tag v0.2.0
