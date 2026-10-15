@@ -29,6 +29,7 @@ struct AppState {
 
 fn home_dir() -> Result<PathBuf, String> {
     std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from)
         .ok_or_else(|| "HOME is not set".into())
 }
@@ -134,6 +135,7 @@ struct DiskInfo {
     free: u64,
 }
 
+#[cfg(unix)]
 #[tauri::command]
 fn disk_info() -> Result<DiskInfo, String> {
     let home = home_dir()?;
@@ -148,6 +150,22 @@ fn disk_info() -> Result<DiskInfo, String> {
         total: stat.f_blocks * bsize,
         free: stat.f_bavail * bsize,
     })
+}
+
+#[cfg(windows)]
+#[tauri::command]
+fn disk_info() -> Result<DiskInfo, String> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::GetDiskFreeSpaceExW;
+
+    let home = home_dir()?;
+    let wide: Vec<u16> = home.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let (mut free, mut total) = (0u64, 0u64);
+    // SAFETY: wide is NUL-terminated and the out pointers are valid for writes.
+    if unsafe { GetDiskFreeSpaceExW(wide.as_ptr(), &mut free, &mut total, std::ptr::null_mut()) } == 0 {
+        return Err(std::io::Error::last_os_error().to_string());
+    }
+    Ok(DiskInfo { total, free })
 }
 
 #[derive(Serialize)]
