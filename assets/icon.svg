@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#eceef2"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.22"/>
+    </filter>
+    <pattern id="hatch" width="34" height="34" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <rect width="34" height="34" fill="#d9f2e1"/>
+      <rect width="12" height="34" fill="#3fae6a" opacity="0.55"/>
+    </pattern>
+  </defs>
+  <!-- macOS squircle body -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#shadow)"/>
+  <rect x="100.5" y="100.5" width="823" height="823" rx="184.5" fill="none" stroke="#000" stroke-opacity="0.06"/>
+  <!-- treemap tiles -->
+  <g stroke-width="10">
+    <rect x="215" y="215" width="330" height="594" rx="44" fill="url(#hatch)" stroke="#2f9a5a"/>
+    <rect x="569" y="215" width="240" height="282" rx="40" fill="#e4e1fb" stroke="#8b80e8"/>
+    <rect x="569" y="521" width="108" height="288" rx="32" fill="#fbdde8" stroke="#e57aa3"/>
+    <rect x="701" y="521" width="108" height="130" rx="30" fill="#dbe6fb" stroke="#6f95e6"/>
+    <rect x="701" y="675" width="108" height="134" rx="30" fill="#fde8d8" stroke="#eba36f"/>
+  </g>
+</svg>
