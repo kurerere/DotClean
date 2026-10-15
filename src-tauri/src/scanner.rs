@@ -1,5 +1,4 @@
 use std::fs;
-use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 
@@ -8,6 +7,32 @@ use rayon::prelude::*;
 /// Files at or above this size are kept as individual tree nodes; smaller
 /// files are folded into their parent's `small_files` total to keep memory low.
 const LARGE_FILE: u64 = 1024 * 1024;
+
+/// Device id used to avoid crossing into other volumes.
+#[cfg(unix)]
+fn device_id(meta: &fs::Metadata) -> u64 {
+    use std::os::unix::fs::MetadataExt;
+    meta.dev()
+}
+
+/// Windows has no cheap per-entry device id; the scan stays on one volume
+/// because junctions are skipped as symlinks.
+#[cfg(not(unix))]
+fn device_id(_meta: &fs::Metadata) -> u64 {
+    0
+}
+
+/// Bytes actually allocated on disk for this entry.
+#[cfg(unix)]
+fn allocated_size(meta: &fs::Metadata) -> u64 {
+    use std::os::unix::fs::MetadataExt;
+    meta.blocks() * 512
+}
+
+#[cfg(not(unix))]
+fn allocated_size(meta: &fs::Metadata) -> u64 {
+    meta.len()
+}
 
 const PROJECT_MARKERS: &[&str] = &[
     ".git",
@@ -80,7 +105,7 @@ impl Progress {
 /// Docker.raw report their real footprint). Symlinks are never followed and
 /// other volumes are skipped.
 pub fn scan(root: &Path, progress: &Progress) -> Node {
-    let dev = fs::symlink_metadata(root).map(|m| m.dev()).unwrap_or(0);
+    let dev = fs::symlink_metadata(root).map(|m| device_id(&m)).unwrap_or(0);
     let name = root
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -115,12 +140,12 @@ fn scan_dir(path: PathBuf, name: String, dev: u64, progress: &Progress) -> Node 
         }
         let ft = meta.file_type();
         if ft.is_dir() {
-            if meta.dev() == dev {
+            if device_id(&meta) == dev {
                 subdirs.push((entry.path(), fname));
             }
             continue;
         }
-        let size = meta.blocks() * 512;
+        let size = allocated_size(&meta);
         files += 1;
         bytes += size;
         if ft.is_file() && size >= LARGE_FILE {
