@@ -1,10 +1,11 @@
-import { ChevronRight, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronRight, RefreshCw } from "lucide-react";
 
 import { Treemap, type ColorMode } from "@/components/treemap";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatBytes, formatCount } from "@/lib/format";
 import { CATEGORIES, type ScanProgress, type TreeItem } from "@/lib/types";
+import { FILE_MANAGER } from "@/lib/utils";
 
 interface ExplorerProps {
   home: string;
@@ -12,6 +13,7 @@ interface ExplorerProps {
   mode: ColorMode;
   onModeChange: (mode: ColorMode) => void;
   onNavigate: (path: string) => void;
+  onBack: (() => void) | null;
   onOpenFile: (path: string) => void;
   highlight: Set<string>;
   scanning: boolean;
@@ -22,14 +24,14 @@ interface ExplorerProps {
 }
 
 export function Explorer(props: ExplorerProps) {
-  const { home, tree, mode, onModeChange, onNavigate, onOpenFile, highlight } = props;
+  const { home, tree, mode, onModeChange, onNavigate, onBack, onOpenFile, highlight } = props;
 
   return (
     <section className="flex min-h-0 flex-col rounded-xl border bg-card">
       <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
         <div>
           <h2 className="font-semibold">Explorer</h2>
-          <p className="text-sm text-muted-foreground">Your home folder, sized by space used. Click a tile to open it.</p>
+          <p className="text-sm text-muted-foreground">Your home folder, sized by space used. Click a folder to drill in, right-click to show it in {FILE_MANAGER}.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -61,9 +63,12 @@ export function Explorer(props: ExplorerProps) {
         </div>
       </header>
 
-      <div className="flex items-center justify-between border-t px-5 py-2 text-sm">
+      <div className="flex items-center justify-between gap-2 border-t py-2 pr-5 pl-3 text-sm">
+        <Button variant="ghost" size="icon-sm" title="Back" disabled={!onBack} onClick={onBack ?? undefined}>
+          <ArrowLeft />
+        </Button>
         <Breadcrumb home={home} path={tree?.path ?? home} onNavigate={onNavigate} />
-        {tree && <span className="font-mono text-xs text-muted-foreground">{formatBytes(tree.size)}</span>}
+        {tree && <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">{formatBytes(tree.size)}</span>}
       </div>
 
       <div className="min-h-0 flex-1 px-4 pb-2">
@@ -74,9 +79,10 @@ export function Explorer(props: ExplorerProps) {
             highlight={highlight}
             onOpen={(item) => {
               if (!item.path) return;
-              if (item.kind === "dir" && item.children.length > 0) onNavigate(item.path);
+              if (item.kind === "dir" && item.expandable) onNavigate(item.path);
               else onOpenFile(item.path);
             }}
+            onReveal={(item) => item.path && onOpenFile(item.path)}
           />
         ) : (
           <ScanStatus {...props} />
@@ -118,7 +124,7 @@ function Breadcrumb({ home, path, onNavigate }: { home: string; path: string; on
     rel.map((part, i) => ({ label: part, path: `${home}/${rel.slice(0, i + 1).join("/")}` })),
   );
   return (
-    <nav className="flex min-w-0 items-center gap-1 text-muted-foreground">
+    <nav className="flex min-w-0 flex-1 items-center gap-1 text-muted-foreground">
       {crumbs.map((c, i) => {
         const last = i === crumbs.length - 1;
         return (

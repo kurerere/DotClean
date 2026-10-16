@@ -16,7 +16,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatBytes, tildify } from "@/lib/format";
 import type { Recommendation, Safety } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, FILE_MANAGER } from "@/lib/utils";
 
 interface RecommendationsProps {
   home: string;
@@ -185,7 +185,7 @@ function RecRow({ rec, home, selected, onToggle, onReveal, onHover }: Recommenda
               <span>{formatBytes(p.size)}</span>
               <button
                 className="opacity-0 group-hover:opacity-100 hover:text-foreground"
-                title="Reveal in Finder"
+                title={`Reveal in ${FILE_MANAGER}`}
                 onClick={() => onReveal(p.path)}
               >
                 <FolderSearch className="size-3.5" />

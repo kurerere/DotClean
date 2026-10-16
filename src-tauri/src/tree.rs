@@ -80,6 +80,8 @@ pub struct TreeItem {
     pub category: Category,
     pub cleanable: Option<Safety>,
     pub file_count: u64,
+    /// Whether drilling into this item would show anything beyond loose files.
+    pub expandable: bool,
     pub children: Vec<TreeItem>,
 }
 
@@ -150,6 +152,7 @@ impl<'a> View<'a> {
                     category: cat,
                     cleanable,
                     file_count: 0,
+                    expandable: false,
                     children: Vec::new(),
                 });
             }
@@ -162,6 +165,7 @@ impl<'a> View<'a> {
                     category: cat,
                     cleanable,
                     file_count: rest.1,
+                    expandable: false,
                     children: Vec::new(),
                 });
             }
@@ -175,6 +179,7 @@ impl<'a> View<'a> {
             category: cat,
             cleanable,
             file_count: node.file_count,
+            expandable: node.is_dir && !node.children.is_empty(),
             children,
         }
     }
