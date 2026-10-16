@@ -9,6 +9,7 @@ export interface TreeItem {
   category: Category;
   cleanable: Safety | null;
   fileCount: number;
+  expandable: boolean;
   children: TreeItem[];
 }
 

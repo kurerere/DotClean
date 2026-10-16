@@ -28,6 +28,8 @@ export default function App() {
   const [progress, setProgress] = useState<ScanProgress>({ files: 0, bytes: 0 });
   const [error, setError] = useState<string | null>(null);
   const [hovered, setHovered] = useState<Recommendation | null>(null);
+  // Folders visited before the current view, most recent last.
+  const [history, setHistory] = useState<string[]>([]);
   const started = useRef(false);
 
   const refresh = useCallback(async (path: string | null) => {
@@ -54,6 +56,7 @@ export default function App() {
       }
       setHome(summary.home);
       setHomeSize(summary.size);
+      setHistory([]);
       const nextRecs = await refresh(null);
       setSelected(new Set(nextRecs.filter((r) => r.safety === "safe").map((r) => r.id)));
       toast.success(`Scanned ${formatCount(summary.files)} files in ${(summary.millis / 1000).toFixed(1)}s`);
@@ -77,8 +80,53 @@ export default function App() {
     };
   }, [runScan]);
 
-  const navigate = (path: string) =>
-    api.getTree(path).then(setTree).catch((e) => toast.error(errorText(e)));
+  const navigate = (path: string) => {
+    if (!tree?.path || path === tree.path) return;
+    const from = tree.path;
+    api
+      .getTree(path)
+      .then((next) => {
+        setTree(next);
+        setHistory((h) => [...h, from]);
+      })
+      .catch((e) => toast.error(errorText(e)));
+  };
+
+  const back = useCallback(() => {
+    const prev = history[history.length - 1];
+    if (prev === undefined) return;
+    setHistory(history.slice(0, -1));
+    // The folder may have been trashed since; fall back to home.
+    api
+      .getTree(prev)
+      .catch(() => api.getTree(null))
+      .then(setTree)
+      .catch((e) => toast.error(errorText(e)));
+  }, [history]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, [contenteditable]")) return;
+      if (e.key === "Backspace" || ((e.metaKey || e.altKey) && (e.key === "[" || e.key === "ArrowLeft"))) {
+        e.preventDefault();
+        back();
+      }
+    };
+    // Mouse "back" side button.
+    const onMouse = (e: MouseEvent) => {
+      if (e.button === 3) {
+        e.preventDefault();
+        back();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouse);
+    };
+  }, [back]);
 
   const reveal = (path: string) => revealItemInDir(path).catch((e) => toast.error(errorText(e)));
 
@@ -157,6 +205,7 @@ export default function App() {
             mode={mode}
             onModeChange={setMode}
             onNavigate={navigate}
+            onBack={history.length > 0 && !scanning ? back : null}
             onOpenFile={reveal}
             highlight={highlight}
             scanning={scanning}

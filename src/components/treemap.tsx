@@ -12,13 +12,14 @@ interface TreemapProps {
   mode: ColorMode;
   highlight: Set<string>;
   onOpen: (item: TreeItem) => void;
+  onReveal: (item: TreeItem) => void;
 }
 
 const GAP = 4;
 const HEADER = 26;
 const PAD = 6;
 
-export function Treemap({ root, mode, highlight, onOpen }: TreemapProps) {
+export function Treemap({ root, mode, highlight, onOpen, onReveal }: TreemapProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
 
@@ -49,6 +50,7 @@ export function Treemap({ root, mode, highlight, onOpen }: TreemapProps) {
           mode={mode}
           highlight={highlight}
           onOpen={onOpen}
+          onReveal={onReveal}
         />
       ))}
     </div>
@@ -65,7 +67,7 @@ interface TileProps extends Omit<TreemapProps, "root"> {
   depth: number;
 }
 
-function Tile({ item, rect, depth, mode, highlight, onOpen }: TileProps) {
+function Tile({ item, rect, depth, mode, highlight, onOpen, onReveal }: TileProps) {
   if (rect.w < 3 || rect.h < 3) return null;
 
   // A tile that is entirely cleanable reads better as one solid block.
@@ -96,8 +98,14 @@ function Tile({ item, rect, depth, mode, highlight, onOpen }: TileProps) {
         e.stopPropagation();
         if (opens) onOpen(item);
       }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (opens) onReveal(item);
+      }}
       className={cn(
         "absolute overflow-hidden rounded-md border transition-[filter,box-shadow]",
+        opens && "cursor-pointer",
         opens && "hover:brightness-[0.97] dark:hover:brightness-110",
         hot && "ring-2 ring-foreground/70",
         tileClass(item, mode),
@@ -133,6 +141,7 @@ function Tile({ item, rect, depth, mode, highlight, onOpen }: TileProps) {
           mode={mode}
           highlight={highlight}
           onOpen={onOpen}
+          onReveal={onReveal}
         />
       ))}
     </div>
