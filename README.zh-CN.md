@@ -107,3 +107,10 @@ pnpm tauri build   # 打包安装包
 git tag v0.2.0
 git push origin v0.2.0
 ```
+
+## 许可证
+
+原创代码采用 [MIT 许可证](LICENSE)，Copyright (c) 2026 kurerere。
+
+第三方代码、素材和依赖保留各自的版权和许可条款，详见
+[第三方声明](THIRD_PARTY_NOTICES.md)。

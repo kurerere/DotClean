@@ -107,3 +107,11 @@ Pushing a tag triggers GitHub Actions, which builds the macOS arm64 and Windows 
 git tag v0.2.0
 git push origin v0.2.0
 ```
+
+## License
+
+Original contributions are licensed under the [MIT License](LICENSE).
+Copyright (c) 2026 kurerere.
+
+Third-party code, assets and dependencies retain their own copyrights and license
+terms. See [Third-party notices](THIRD_PARTY_NOTICES.md).
